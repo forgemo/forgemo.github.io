@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["SuffixTable","A suffix table is a sequence of lexicographically sorted suffixes."]]});

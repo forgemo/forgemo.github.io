@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `ironstorm_lookup` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, ironstorm_lookup">
+
+    <title>ironstorm_lookup - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'ironstorm_lookup', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>ironstorm_lookup</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-0' class='srclink' href='../src/ironstorm_lookup/src/lib.rs.html#2-292' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'>
+<h2 id='overview' class='section-header'><a href='#overview'>Overview</a></h2>
+<p>This library contains the internal data structure used by the ironstrom project</p>
+
+<h2 id='design-goals' class='section-header'><a href='#design-goals'>Design goals</a></h2>
+<ul>
+<li>Lightening fast auto completion / type ahead lookups (~200 microseconds! per lookup)</li>
+<li>Not too much searchable text per entry, e.g: street names for locations or movie titles for movies</li>
+<li>High number of possible candidates (multiple gigabytes)</li>
+<li>It can be recommended, but must not be rquired to fit the whole data set into physical memory</li>
+<li>The LookupTable should use virtual memory and OS level optimization to handle larger data sets</li>
+<li>Full text search capability</li>
+<li>Optimized for hardly ever changing data sets, e.g.: All streets in a country</li>
+<li>No mulithreading if not absolutely required =&gt; Buy lookup speed with memory, not processing power!</li>
+<li>Optimize for returning a small number of matches, e.g: Find first 10 of 2 million movies that contain &#39;hero&#39;</li>
+<li>Only one dimensional coarse sorting required, e.g: Fantasy books should be returnd before science fiction books</li>
+<li>Lazy stream/iterator based lookup implementation</li>
+</ul>
+
+<h2 id='accepted-drawbacks' class='section-header'><a href='#accepted-drawbacks'>Accepted drawbacks</a></h2>
+<ul>
+<li>Creating a <code>LookupTable</code> for multiple gigabytes of data can take a few minutes</li>
+<li>A <code>LookupTable</code> can not be modified, only recreated</li>
+<li>No fine granular sorting possible: e.g: by lexicographical order</li>
+</ul>
+
+<h2 id='basic-usage' class='section-header'><a href='#basic-usage'>Basic Usage</a></h2>
+<ol>
+<li>Create a custom type for the data you want to seacrh for, e.g.: a <code>Movie</code> struct</li>
+<li>Implement the <code>Lookup</code> trait for your custom type.</li>
+<li>Create an <code>Iterator</code> that will iterate over all the elements you would like to put into the <code>LookupTable</code></li>
+<li>Create a new <code>LookupTable</code> by calling <code>LookupTable::from_iter(myMoviesIterator)</code></li>
+<li>Call <code>myMoviesLookupTable.find(&quot;hero&quot;)</code> to get an lazy &#39;Iterator&#39; over all matching elements</li>
+</ol>
+
+<h2 id='example' class='section-header'><a href='#example'>Example</a></h2>
+<p>Let&#39;s build a <code>LookupTable</code> to find restaurants by name.</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>iter</span>::<span class='ident'>FromIterator</span>;
+<span class='kw'>use</span> <span class='ident'>ironstorm_lookup</span>::{<span class='ident'>LookupTable</span>, <span class='ident'>Lookup</span>, <span class='ident'>Bucket</span>};
+
+<span class='comment'>// 1. Create a custom struct representing a restaurant</span>
+<span class='kw'>struct</span> <span class='ident'>Restaurant</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+    <span class='ident'>name</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>,
+    <span class='ident'>cuisine</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>
+}
+
+<span class='comment'>// 2. Implement the `Lookup` trait for `Restaurant` references</span>
+<span class='kw'>impl</span> <span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Lookup</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Restaurant</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+
+    <span class='comment'>// Make the restaurant name searchable</span>
+    <span class='kw'>fn</span> <span class='ident'>searchable_text</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>String</span> {
+        <span class='self'>self</span>.<span class='ident'>name</span>.<span class='ident'>to_string</span>()
+    }
+
+    <span class='comment'>// Decide, based on cuisine, to which `Bucket` a restaurant belongs.</span>
+    <span class='comment'>// `Bucket` is just a type alias for an unsigned integer aka usize.</span>
+    <span class='comment'>// Matches in lower buckets will be returned before matches in higher buckets.</span>
+    <span class='kw'>fn</span> <span class='ident'>bucket</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Bucket</span> {
+        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>cuisine</span> {
+            <span class='string'>&quot;italian&quot;</span>   <span class='op'>=&gt;</span> <span class='number'>0</span>,
+            <span class='string'>&quot;german&quot;</span>    <span class='op'>=&gt;</span> <span class='number'>0</span>,
+            <span class='string'>&quot;chinese&quot;</span>   <span class='op'>=&gt;</span> <span class='number'>1</span>,
+            _           <span class='op'>=&gt;</span> <span class='number'>5</span>
+        }
+    }
+}
+
+<span class='comment'>// 3. Create some restaurants and the according iterator</span>
+<span class='kw'>let</span> <span class='ident'>restaurants</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[
+    <span class='ident'>Restaurant</span>{<span class='ident'>name</span>:<span class='string'>&quot;India Man&quot;</span>, <span class='ident'>cuisine</span>:<span class='string'>&quot;indian&quot;</span>},
+    <span class='ident'>Restaurant</span>{<span class='ident'>name</span>:<span class='string'>&quot;Ami Guy&quot;</span>, <span class='ident'>cuisine</span>:<span class='string'>&quot;american&quot;</span>},
+    <span class='ident'>Restaurant</span>{<span class='ident'>name</span>:<span class='string'>&quot;Italiano Pizza&quot;</span>, <span class='ident'>cuisine</span>:<span class='string'>&quot;italian&quot;</span>},
+    <span class='ident'>Restaurant</span>{<span class='ident'>name</span>:<span class='string'>&quot;Sushi House&quot;</span>, <span class='ident'>cuisine</span>:<span class='string'>&quot;chinese&quot;</span>},
+    <span class='ident'>Restaurant</span>{<span class='ident'>name</span>:<span class='string'>&quot;Brezel Hut&quot;</span>, <span class='ident'>cuisine</span>:<span class='string'>&quot;german&quot;</span>}
+];
+<span class='kw'>let</span> <span class='ident'>iter</span> <span class='op'>=</span> <span class='ident'>restaurants</span>.<span class='ident'>iter</span>();
+
+<span class='comment'>// 4. Create the `LookupTable`</span>
+<span class='kw'>let</span> <span class='ident'>lookup_table</span> <span class='op'>=</span> <span class='ident'>ironstorm_lookup</span>::<span class='ident'>LookupTable</span>::<span class='ident'>from_iter</span>(<span class='ident'>iter</span>);
+
+<span class='comment'>// 5. Find restaurants containing `i`</span>
+
+
+<span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>result_iter</span> <span class='op'>=</span> <span class='ident'>lookup_table</span>.<span class='ident'>find</span>(<span class='string'>&quot;i&quot;</span>);
+
+<span class='comment'>// two times &#39;Italiano pizza&#39;, because it&#39;s in the lowest bucket</span>
+<span class='comment'>// two times because it has two lower case `i` in the name</span>
+<span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>result_iter</span>.<span class='ident'>next</span>().<span class='ident'>unwrap</span>().<span class='ident'>name</span>, <span class='string'>&quot;Italiano Pizza&quot;</span>);
+<span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>result_iter</span>.<span class='ident'>next</span>().<span class='ident'>unwrap</span>().<span class='ident'>name</span>, <span class='string'>&quot;Italiano Pizza&quot;</span>);
+
+<span class='comment'>// &#39;Sushi House&#39;, because it&#39;s in the second lowest bucket</span>
+<span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>result_iter</span>.<span class='ident'>next</span>().<span class='ident'>unwrap</span>().<span class='ident'>name</span>, <span class='string'>&quot;Sushi House&quot;</span>);
+
+<span class='comment'>// &#39;Ami Guy&#39; or &#39; India Man&#39;</span>
+<span class='comment'>// They are in the same bucket and there is no order within the same bucket</span>
+<span class='kw'>let</span> <span class='ident'>indian_or_american_1</span> <span class='op'>=</span> <span class='ident'>result_iter</span>.<span class='ident'>next</span>().<span class='ident'>unwrap</span>().<span class='ident'>name</span>;
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>indian_or_american_1</span><span class='op'>==</span><span class='string'>&quot;India Man&quot;</span> <span class='op'>||</span> <span class='ident'>indian_or_american_1</span><span class='op'>==</span><span class='string'>&quot;Ami Guy&quot;</span>);
+
+<span class='comment'>// The other one of &#39;Ami Guy&#39; or &#39; India Man&#39;</span>
+<span class='kw'>let</span> <span class='ident'>indian_or_american_2</span> <span class='op'>=</span> <span class='ident'>result_iter</span>.<span class='ident'>next</span>().<span class='ident'>unwrap</span>().<span class='ident'>name</span>;
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>indian_or_american_2</span><span class='op'>==</span><span class='string'>&quot;India Man&quot;</span> <span class='op'>||</span> <span class='ident'>indian_or_american_2</span><span class='op'>==</span><span class='string'>&quot;Ami Guy&quot;</span>);
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>indian_or_american_1</span> <span class='op'>!=</span> <span class='ident'>indian_or_american_2</span>);
+
+<span class='comment'>// No more matches</span>
+<span class='comment'>// &quot;Brezel Hut&quot; doesn&#39;t contain an &quot;i&quot; and was not part of the result.</span>
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>result_iter</span>.<span class='ident'>next</span>().<span class='ident'>is_none</span>());</pre>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.LookupTable.html'
+                                  title='ironstorm_lookup::LookupTable'>LookupTable</a></td>
+                           <td class='docblock short'>
+                                <p>This is the actual <code>LookupTable</code> that creates the in memory data structure and uses it to perform the lookups.
+It implements the <code>FromIterator</code> trait and its <code>from_iter(..)</code> method.
+To create a new <code>LookupTable</code> instance, you first have to create an Iterator over some <code>Lookup</code> items.
+Having that iterator, you can call <code>LookupTable::from_iter(myLookupItemIterator)</code>`.</p>
+                           </td>
+                       </tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='trait' href='trait.Lookup.html'
+                                  title='ironstorm_lookup::Lookup'>Lookup</a></td>
+                           <td class='docblock short'>
+                                <p>Implement this trait for types that are going be put into a <code>LookupTable</code></p>
+                           </td>
+                       </tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='type' href='type.Bucket.html'
+                                  title='ironstorm_lookup::Bucket'>Bucket</a></td>
+                           <td class='docblock short'>
+                                <p>Every value that is inserted into the lookup table must be assigned to a bucket.
+Values, assigned to a lower bucket, will be returned before values from a higher bucket.
+This bucket mechanism is used instead a full blown sorting algorithm to boost performance.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "ironstorm_lookup";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>
