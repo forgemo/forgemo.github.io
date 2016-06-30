@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/elbatya/.multirust/toolchains/nightly/cargo/registry/src/github.com-88ac128001ac3a9a/suffix-0.3.1/src/table.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/elbatya/.cargo/registry/src/github.com-1ecc6299db9ec823/suffix-0.4.0/src/table.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>table.rs.html -- source</title>
@@ -885,13 +885,8 @@
 <span id="841">841</span>
 <span id="842">842</span>
 <span id="843">843</span>
-<span id="844">844</span>
-<span id="845">845</span>
-<span id="846">846</span>
-<span id="847">847</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>borrow</span>::<span class='ident'>Cow</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>iter</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>slice</span>;
@@ -901,7 +896,8 @@
 
 <span class='doccomment'>/// A suffix table is a sequence of lexicographically sorted suffixes.</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// The lifetime `&#39;s` refers to the text when borrowed.</span>
+<span class='doccomment'>/// The lifetimes `&#39;s` and `&#39;t` (respectively) refer to the text and suffix</span>
+<span class='doccomment'>/// indices when borrowed.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// This is distinct from a suffix array in that it *only* contains</span>
 <span class='doccomment'>/// suffix indices. It has no &quot;enhanced&quot; information like the inverse suffix</span>
@@ -943,12 +939,12 @@
 <span class='doccomment'>/// when solving the subproblems mentioned above (even if the alphabet of the</span>
 <span class='doccomment'>/// original text is very small).</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Eq</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span><span class='op'>&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> {
     <span class='ident'>text</span>: <span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;</span>,
-    <span class='ident'>table</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>,
+    <span class='ident'>table</span>: <span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span>, [<span class='ident'>u32</span>]<span class='op'>&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span><span class='op'>&gt;</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Creates a new suffix table for `text` in `O(n)` time and `O(kn)`</span>
     <span class='doccomment'>/// space, where `k` is the size of the alphabet in the text.</span>
     <span class='doccomment'>///</span>
@@ -966,9 +962,9 @@
     <span class='doccomment'>/// is degraded with a bigger number type. `u32` strikes a nice balance; it</span>
     <span class='doccomment'>/// gets good performance while allowing most reasonably sized documents</span>
     <span class='doccomment'>/// (~4GB).</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='ident'>S</span><span class='op'>&gt;</span>(<span class='ident'>text</span>: <span class='ident'>S</span>) <span class='op'>-&gt;</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>S</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='ident'>S</span><span class='op'>&gt;</span>(<span class='ident'>text</span>: <span class='ident'>S</span>) <span class='op'>-&gt;</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>S</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>text</span> <span class='op'>=</span> <span class='ident'>text</span>.<span class='ident'>into</span>();
-        <span class='kw'>let</span> <span class='ident'>table</span> <span class='op'>=</span> <span class='ident'>sais_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>);
+        <span class='kw'>let</span> <span class='ident'>table</span> <span class='op'>=</span> <span class='ident'>sais_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>).<span class='ident'>into</span>();
         <span class='ident'>SuffixTable</span> {
             <span class='ident'>text</span>: <span class='ident'>text</span>,
             <span class='ident'>table</span>: <span class='ident'>table</span>,
@@ -981,9 +977,12 @@
     <span class='doccomment'>/// tends to have lower overhead, so it can be useful when creating lots</span>
     <span class='doccomment'>/// of suffix tables for small strings.</span>
     <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_naive</span><span class='op'>&lt;</span><span class='ident'>S</span><span class='op'>&gt;</span>(<span class='ident'>text</span>: <span class='ident'>S</span>) <span class='op'>-&gt;</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>S</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_naive</span><span class='op'>&lt;</span><span class='ident'>S</span><span class='op'>&gt;</span>(
+        <span class='ident'>text</span>: <span class='ident'>S</span>,
+    ) <span class='op'>-&gt;</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='lifetime'>&#39;t</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>S</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>text</span> <span class='op'>=</span> <span class='ident'>text</span>.<span class='ident'>into</span>();
-        <span class='kw'>let</span> <span class='ident'>table</span> <span class='op'>=</span> <span class='ident'>naive_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>);
+        <span class='kw'>let</span> <span class='ident'>table</span> <span class='op'>=</span> <span class='ident'>naive_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>).<span class='ident'>into</span>();
         <span class='ident'>SuffixTable</span> {
             <span class='ident'>text</span>: <span class='ident'>text</span>,
             <span class='ident'>table</span>: <span class='ident'>table</span>,
@@ -997,17 +996,18 @@
     <span class='doccomment'>/// is not checked! If it isn&#39;t, this will cause other operations on a</span>
     <span class='doccomment'>/// suffix table to fail in weird ways.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Note that if `table` is borrowed (i.e., a `&amp;[u8]`), then it is copied.</span>
-    <span class='doccomment'>///</span>
     <span class='doccomment'>/// This fails if the number of characters in `text` does not equal the</span>
     <span class='doccomment'>/// number of suffixes in `table`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_parts</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span>, <span class='ident'>S</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>text</span>: <span class='ident'>S</span>, <span class='ident'>table</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span><span class='op'>&gt;</span>
-            <span class='kw'>where</span> <span class='ident'>S</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span>, <span class='ident'>T</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span>, [<span class='ident'>u32</span>]<span class='op'>&gt;&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_parts</span><span class='op'>&lt;</span><span class='ident'>S</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(
+        <span class='ident'>text</span>: <span class='ident'>S</span>,
+        <span class='ident'>table</span>: <span class='ident'>T</span>,
+    ) <span class='op'>-&gt;</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='lifetime'>&#39;t</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>S</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span>, <span class='ident'>T</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span>, [<span class='ident'>u32</span>]<span class='op'>&gt;&gt;</span> {
         <span class='kw'>let</span> (<span class='ident'>text</span>, <span class='ident'>table</span>) <span class='op'>=</span> (<span class='ident'>text</span>.<span class='ident'>into</span>(), <span class='ident'>table</span>.<span class='ident'>into</span>());
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>count</span>(), <span class='ident'>table</span>.<span class='ident'>len</span>());
+        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>text</span>.<span class='ident'>len</span>(), <span class='ident'>table</span>.<span class='ident'>len</span>());
         <span class='ident'>SuffixTable</span> {
             <span class='ident'>text</span>: <span class='ident'>text</span>,
-            <span class='ident'>table</span>: <span class='ident'>table</span>.<span class='ident'>into_owned</span>(),
+            <span class='ident'>table</span>: <span class='ident'>table</span>,
         }
     }
 
@@ -1015,11 +1015,11 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// This is useful to avoid copying when the suffix table is part of an</span>
     <span class='doccomment'>/// intermediate computation.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>into_parts</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>) {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>into_parts</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>str</span><span class='op'>&gt;</span>, <span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span>, [<span class='ident'>u32</span>]<span class='op'>&gt;</span>) {
         (<span class='self'>self</span>.<span class='ident'>text</span>, <span class='self'>self</span>.<span class='ident'>table</span>)
     }
 
-    <span class='doccomment'>/// Computes the LCP array in linear time and linear space.</span>
+    <span class='doccomment'>/// Computes the LCP array.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>lcp_lens</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>inverse</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0u32</span>; <span class='self'>self</span>.<span class='ident'>text</span>.<span class='ident'>len</span>()];
         <span class='kw'>for</span> (<span class='ident'>rank</span>, <span class='kw-2'>&amp;</span><span class='ident'>sufstart</span>) <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>table</span>().<span class='ident'>iter</span>().<span class='ident'>enumerate</span>() {
@@ -1082,8 +1082,7 @@
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>contains</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>query</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='kw'>let</span> (<span class='ident'>text</span>, <span class='ident'>query</span>) <span class='op'>=</span> (<span class='self'>self</span>.<span class='ident'>text</span>.<span class='ident'>as_bytes</span>(), <span class='ident'>query</span>.<span class='ident'>as_bytes</span>());
         <span class='ident'>query</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='number'>0</span> <span class='op'>&amp;&amp;</span> <span class='self'>self</span>.<span class='ident'>table</span>.<span class='ident'>binary_search_by</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>sufi</span><span class='op'>|</span> {
-            <span class='ident'>iter_cmp</span>(<span class='ident'>text</span>[<span class='ident'>sufi</span> <span class='kw'>as</span> <span class='ident'>usize</span>..].<span class='ident'>iter</span>().<span class='ident'>take</span>(<span class='ident'>query</span>.<span class='ident'>len</span>()),
-                     <span class='ident'>query</span>.<span class='ident'>iter</span>())
+            <span class='ident'>text</span>[<span class='ident'>sufi</span> <span class='kw'>as</span> <span class='ident'>usize</span>..].<span class='ident'>iter</span>().<span class='ident'>take</span>(<span class='ident'>query</span>.<span class='ident'>len</span>()).<span class='ident'>cmp</span>(<span class='ident'>query</span>.<span class='ident'>iter</span>())
         }).<span class='ident'>is_ok</span>()
     }
 
@@ -1144,7 +1143,7 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span><span class='op'>&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>SuffixTable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
         <span class='macro'>try</span><span class='macro'>!</span>(<span class='macro'>writeln</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;\n-----------------------------------------&quot;</span>));
         <span class='macro'>try</span><span class='macro'>!</span>(<span class='macro'>writeln</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;SUFFIX TABLE&quot;</span>));
@@ -1234,8 +1233,12 @@
     <span class='ident'>sa</span>
 }
 
-<span class='kw'>fn</span> <span class='ident'>sais</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>sa</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u32</span>], <span class='ident'>stypes</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>SuffixTypes</span>, <span class='ident'>bins</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Bins</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>T</span>)
-        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Text</span>, <span class='op'>&lt;&lt;</span><span class='ident'>T</span> <span class='kw'>as</span> <span class='ident'>Text</span><span class='op'>&gt;</span>::<span class='ident'>IdxChars</span> <span class='kw'>as</span> <span class='ident'>Iterator</span><span class='op'>&gt;</span>::<span class='ident'>Item</span>: <span class='ident'>IdxChar</span> {
+<span class='kw'>fn</span> <span class='ident'>sais</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(
+    <span class='ident'>sa</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u32</span>],
+    <span class='ident'>stypes</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>SuffixTypes</span>,
+    <span class='ident'>bins</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Bins</span>,
+    <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>T</span>,
+) <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Text</span>, <span class='op'>&lt;&lt;</span><span class='ident'>T</span> <span class='kw'>as</span> <span class='ident'>Text</span><span class='op'>&gt;</span>::<span class='ident'>IdxChars</span> <span class='kw'>as</span> <span class='ident'>Iterator</span><span class='op'>&gt;</span>::<span class='ident'>Item</span>: <span class='ident'>IdxChar</span> {
     <span class='comment'>// Instead of working out edge cases in the code below, just allow them</span>
     <span class='comment'>// to assume &gt;=2 characters.</span>
     <span class='kw'>match</span> <span class='ident'>text</span>.<span class='ident'>len</span>() {
@@ -1305,8 +1308,8 @@
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>name</span> <span class='op'>=</span> <span class='number'>0u32</span>;
     <span class='comment'>// We set our &quot;name buffer&quot; to be max u32 values. Since there are at</span>
     <span class='comment'>// most n/2 wstrings, a name can never be greater than n/2.</span>
-    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> (<span class='ident'>num_wstrs</span>..(<span class='ident'>sa</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span>)) { <span class='ident'>sa</span>[<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>=</span> <span class='ident'>u32</span>::<span class='ident'>MAX</span>; }
-    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> (<span class='number'>0</span>..<span class='ident'>num_wstrs</span>) {
+    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>num_wstrs</span>..(<span class='ident'>sa</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span>) { <span class='ident'>sa</span>[<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>=</span> <span class='ident'>u32</span>::<span class='ident'>MAX</span>; }
+    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>num_wstrs</span> {
         <span class='kw'>let</span> <span class='ident'>cur_sufi</span> <span class='op'>=</span> <span class='ident'>sa</span>[<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
         <span class='kw'>if</span> <span class='ident'>prev_sufi</span> <span class='op'>==</span> <span class='number'>0</span> <span class='op'>||</span> <span class='op'>!</span><span class='ident'>text</span>.<span class='ident'>wstring_equal</span>(<span class='ident'>stypes</span>, <span class='ident'>cur_sufi</span>, <span class='ident'>prev_sufi</span>) {
             <span class='ident'>name</span> <span class='op'>+=</span> <span class='number'>1</span>;
@@ -1336,7 +1339,7 @@
         <span class='ident'>sais</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>r_sa</span>[..<span class='ident'>num_wstrs</span> <span class='kw'>as</span> <span class='ident'>usize</span>], <span class='ident'>stypes</span>, <span class='ident'>bins</span>, <span class='kw-2'>&amp;</span><span class='ident'>LexNames</span>(<span class='ident'>r_text</span>));
         <span class='ident'>stypes</span>.<span class='ident'>compute</span>(<span class='ident'>text</span>);
     } <span class='kw'>else</span> {
-        <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> (<span class='number'>0</span>..<span class='ident'>num_wstrs</span>) {
+        <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>num_wstrs</span> {
             <span class='kw'>let</span> <span class='ident'>reducedi</span> <span class='op'>=</span> <span class='ident'>sa</span>[((<span class='ident'>sa</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span>) <span class='op'>-</span> <span class='ident'>num_wstrs</span> <span class='op'>+</span> <span class='ident'>i</span>) <span class='kw'>as</span> <span class='ident'>usize</span>];
             <span class='ident'>sa</span>[<span class='ident'>reducedi</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>=</span> <span class='ident'>i</span>;
         }
@@ -1361,12 +1364,12 @@
     <span class='comment'>// that lexical name (which was made possible in the loop above).</span>
     <span class='comment'>//</span>
     <span class='comment'>// In other words, this sets the suffix indices of only the wstrings.</span>
-    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> (<span class='number'>0</span>..<span class='ident'>num_wstrs</span>) {
+    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>num_wstrs</span> {
         <span class='kw'>let</span> <span class='ident'>sufi</span> <span class='op'>=</span> <span class='ident'>sa</span>[<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
         <span class='ident'>sa</span>[<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>=</span> <span class='ident'>sa</span>[(<span class='ident'>sa</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span> <span class='op'>-</span> <span class='ident'>num_wstrs</span> <span class='op'>+</span> <span class='ident'>sufi</span>) <span class='kw'>as</span> <span class='ident'>usize</span>];
     }
     <span class='comment'>// Now zero out everything after the wstrs.</span>
-    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> (<span class='ident'>num_wstrs</span>..(<span class='ident'>sa</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span>)) {
+    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>num_wstrs</span>..(<span class='ident'>sa</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span>) {
         <span class='ident'>sa</span>[<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>=</span> <span class='number'>0</span>;
     }
 
@@ -1428,8 +1431,10 @@
         <span class='ident'>SuffixTypes</span> { <span class='ident'>types</span>: <span class='ident'>stypes</span> }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>compute</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>T</span>)
-            <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Text</span>, <span class='op'>&lt;&lt;</span><span class='ident'>T</span> <span class='kw'>as</span> <span class='ident'>Text</span><span class='op'>&gt;</span>::<span class='ident'>IdxChars</span> <span class='kw'>as</span> <span class='ident'>Iterator</span><span class='op'>&gt;</span>::<span class='ident'>Item</span>: <span class='ident'>IdxChar</span> {
+    <span class='kw'>fn</span> <span class='ident'>compute</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(
+        <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
+        <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>T</span>,
+    ) <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Text</span>, <span class='op'>&lt;&lt;</span><span class='ident'>T</span> <span class='kw'>as</span> <span class='ident'>Text</span><span class='op'>&gt;</span>::<span class='ident'>IdxChars</span> <span class='kw'>as</span> <span class='ident'>Iterator</span><span class='op'>&gt;</span>::<span class='ident'>Item</span>: <span class='ident'>IdxChar</span> {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>chars</span> <span class='op'>=</span> <span class='ident'>text</span>.<span class='ident'>char_indices</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>v</span><span class='op'>|</span> <span class='ident'>v</span>.<span class='ident'>idx_char</span>()).<span class='ident'>rev</span>();
         <span class='kw'>let</span> (<span class='kw-2'>mut</span> <span class='ident'>lasti</span>, <span class='kw-2'>mut</span> <span class='ident'>lastc</span>) <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>chars</span>.<span class='ident'>next</span>() {
             <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span>,
@@ -1468,19 +1473,19 @@
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>is_asc</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
-            <span class='ident'>Ascending</span> <span class='op'>|</span> <span class='ident'>Valley</span> <span class='op'>=&gt;</span> <span class='boolval'>true</span>,
-            _ <span class='op'>=&gt;</span> <span class='boolval'>false</span>,
+            <span class='ident'>Ascending</span> <span class='op'>|</span> <span class='ident'>Valley</span> <span class='op'>=&gt;</span> <span class='bool-val'>true</span>,
+            _ <span class='op'>=&gt;</span> <span class='bool-val'>false</span>,
         }
     }
 
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>is_desc</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Descending</span> <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span> { <span class='boolval'>true</span> } <span class='kw'>else</span> { <span class='boolval'>false</span> }
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Descending</span> <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span> { <span class='bool-val'>true</span> } <span class='kw'>else</span> { <span class='bool-val'>false</span> }
     }
 
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>is_valley</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Valley</span> <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span> { <span class='boolval'>true</span> } <span class='kw'>else</span> { <span class='boolval'>false</span> }
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Valley</span> <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span> { <span class='bool-val'>true</span> } <span class='kw'>else</span> { <span class='bool-val'>false</span> }
     }
 
     <span class='kw'>fn</span> <span class='ident'>inherit</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>SuffixType</span> {
@@ -1596,7 +1601,7 @@
     <span class='kw'>fn</span> <span class='ident'>char_at</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>i</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span>;
 
     <span class='doccomment'>/// An iterator over characters tagged with their byte offsets.</span>
-    <span class='kw'>fn</span> <span class='ident'>char_indices</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Self</span>::<span class='ident'>IdxChars</span>;
+    <span class='kw'>fn</span> <span class='ident'>char_indices</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>IdxChars</span>;
 
     <span class='doccomment'>/// Compare two strings at byte indices `w1` and `w2`.</span>
     <span class='kw'>fn</span> <span class='ident'>wstring_equal</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>stypes</span>: <span class='kw-2'>&amp;</span><span class='ident'>SuffixTypes</span>, <span class='ident'>w1</span>: <span class='ident'>u32</span>, <span class='ident'>w2</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>;
@@ -1628,10 +1633,10 @@
         <span class='kw'>for</span> ((<span class='ident'>i1</span>, <span class='ident'>c1</span>), (<span class='ident'>i2</span>, <span class='ident'>c2</span>)) <span class='kw'>in</span> <span class='ident'>w1chars</span>.<span class='ident'>zip</span>(<span class='ident'>w2chars</span>) {
             <span class='kw'>let</span> (<span class='ident'>i1</span>, <span class='ident'>i2</span>) <span class='op'>=</span> (<span class='ident'>w1</span> <span class='op'>+</span> <span class='ident'>i1</span> <span class='kw'>as</span> <span class='ident'>u32</span>, <span class='ident'>w2</span> <span class='op'>+</span> <span class='ident'>i2</span> <span class='kw'>as</span> <span class='ident'>u32</span>);
             <span class='kw'>if</span> <span class='ident'>c1</span> <span class='op'>!=</span> <span class='ident'>c2</span> <span class='op'>||</span> <span class='op'>!</span><span class='ident'>stypes</span>.<span class='ident'>equal</span>(<span class='ident'>i1</span>, <span class='ident'>i2</span>) {
-                <span class='kw'>return</span> <span class='boolval'>false</span>;
+                <span class='kw'>return</span> <span class='bool-val'>false</span>;
             }
             <span class='kw'>if</span> <span class='ident'>i1</span> <span class='op'>&gt;</span> <span class='ident'>w1</span> <span class='op'>&amp;&amp;</span> (<span class='ident'>stypes</span>.<span class='ident'>is_valley</span>(<span class='ident'>i1</span>) <span class='op'>||</span> <span class='ident'>stypes</span>.<span class='ident'>is_valley</span>(<span class='ident'>i2</span>)) {
-                <span class='kw'>return</span> <span class='boolval'>true</span>;
+                <span class='kw'>return</span> <span class='bool-val'>true</span>;
             }
         }
         <span class='comment'>// At this point, we&#39;ve exhausted either `w1` or `w2`, which means the</span>
@@ -1639,7 +1644,7 @@
         <span class='comment'>// `w1 != w2`, only one string can be exhausted. The sentinel is never</span>
         <span class='comment'>// equal to another character, so we can conclude that the wstrings</span>
         <span class='comment'>// are not equal.</span>
-        <span class='boolval'>false</span>
+        <span class='bool-val'>false</span>
     }
 }
 
@@ -1667,10 +1672,10 @@
         <span class='kw'>for</span> ((<span class='ident'>i1</span>, <span class='ident'>c1</span>), (<span class='ident'>i2</span>, <span class='ident'>c2</span>)) <span class='kw'>in</span> <span class='ident'>w1chars</span>.<span class='ident'>zip</span>(<span class='ident'>w2chars</span>) {
             <span class='kw'>let</span> (<span class='ident'>i1</span>, <span class='ident'>i2</span>) <span class='op'>=</span> (<span class='ident'>w1</span> <span class='op'>+</span> <span class='ident'>i1</span> <span class='kw'>as</span> <span class='ident'>u32</span>, <span class='ident'>w2</span> <span class='op'>+</span> <span class='ident'>i2</span> <span class='kw'>as</span> <span class='ident'>u32</span>);
             <span class='kw'>if</span> <span class='ident'>c1</span> <span class='op'>!=</span> <span class='ident'>c2</span> <span class='op'>||</span> <span class='op'>!</span><span class='ident'>stypes</span>.<span class='ident'>equal</span>(<span class='ident'>i1</span>, <span class='ident'>i2</span>) {
-                <span class='kw'>return</span> <span class='boolval'>false</span>;
+                <span class='kw'>return</span> <span class='bool-val'>false</span>;
             }
             <span class='kw'>if</span> <span class='ident'>i1</span> <span class='op'>&gt;</span> <span class='ident'>w1</span> <span class='op'>&amp;&amp;</span> (<span class='ident'>stypes</span>.<span class='ident'>is_valley</span>(<span class='ident'>i1</span>) <span class='op'>||</span> <span class='ident'>stypes</span>.<span class='ident'>is_valley</span>(<span class='ident'>i2</span>)) {
-                <span class='kw'>return</span> <span class='boolval'>true</span>;
+                <span class='kw'>return</span> <span class='bool-val'>true</span>;
             }
         }
         <span class='comment'>// At this point, we&#39;ve exhausted either `w1` or `w2`, which means the</span>
@@ -1678,7 +1683,7 @@
         <span class='comment'>// `w1 != w2`, only one string can be exhausted. The sentinel is never</span>
         <span class='comment'>// equal to another character, so we can conclude that the wstrings</span>
         <span class='comment'>// are not equal.</span>
-        <span class='boolval'>false</span>
+        <span class='bool-val'>false</span>
     }
 }
 
@@ -1703,29 +1708,16 @@
     <span class='kw'>fn</span> <span class='ident'>idx_char</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='ident'>u32</span>) { (<span class='self'>self</span>.<span class='number'>0</span>, <span class='self'>self</span>.<span class='number'>1</span> <span class='kw'>as</span> <span class='ident'>u32</span>) }
 }
 
-<span class='doccomment'>/// Order `a` and `b` lexicographically using `Ord`</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>iter_cmp</span><span class='op'>&lt;</span><span class='ident'>A</span>, <span class='ident'>L</span>, <span class='ident'>R</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='ident'>a</span>: <span class='ident'>L</span>, <span class='kw-2'>mut</span> <span class='ident'>b</span>: <span class='ident'>R</span>) <span class='op'>-&gt;</span> <span class='ident'>cmp</span>::<span class='ident'>Ordering</span>
-        <span class='kw'>where</span> <span class='ident'>A</span>: <span class='ident'>Ord</span>, <span class='ident'>L</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>A</span><span class='op'>&gt;</span>, <span class='ident'>R</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>loop</span> {
-        <span class='kw'>match</span> (<span class='ident'>a</span>.<span class='ident'>next</span>(), <span class='ident'>b</span>.<span class='ident'>next</span>()) {
-            (<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='ident'>cmp</span>::<span class='ident'>Ordering</span>::<span class='ident'>Equal</span>,
-            (<span class='prelude-val'>None</span>, _   ) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='ident'>cmp</span>::<span class='ident'>Ordering</span>::<span class='ident'>Less</span>,
-            (_   , <span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='ident'>cmp</span>::<span class='ident'>Ordering</span>::<span class='ident'>Greater</span>,
-            (<span class='prelude-val'>Some</span>(<span class='ident'>x</span>), <span class='prelude-val'>Some</span>(<span class='ident'>y</span>)) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>x</span>.<span class='ident'>cmp</span>(<span class='kw-2'>&amp;</span><span class='ident'>y</span>) {
-                <span class='ident'>cmp</span>::<span class='ident'>Ordering</span>::<span class='ident'>Equal</span> <span class='op'>=&gt;</span> (),
-                <span class='ident'>non_eq</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='ident'>non_eq</span>,
-            },
-        }
-    }
-}
-
 <span class='doccomment'>/// Binary search to find first element such that `pred(T) == true`.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// Assumes that if `pred(xs[i]) == true` then `pred(xs[i+1]) == true`.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// If all elements yield `pred(T) == false`, then `xs.len()` is returned.</span>
-<span class='kw'>fn</span> <span class='ident'>binary_search</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>F</span><span class='op'>&gt;</span>(<span class='ident'>xs</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>T</span>], <span class='kw-2'>mut</span> <span class='ident'>pred</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span>
-        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span><span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+<span class='kw'>fn</span> <span class='ident'>binary_search</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>F</span><span class='op'>&gt;</span>(
+    <span class='ident'>xs</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>T</span>],
+    <span class='kw-2'>mut</span> <span class='ident'>pred</span>: <span class='ident'>F</span>,
+) <span class='op'>-&gt;</span> <span class='ident'>usize</span>
+<span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span><span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
     <span class='kw'>let</span> (<span class='kw-2'>mut</span> <span class='ident'>left</span>, <span class='kw-2'>mut</span> <span class='ident'>right</span>) <span class='op'>=</span> (<span class='number'>0</span>, <span class='ident'>xs</span>.<span class='ident'>len</span>());
     <span class='kw'>while</span> <span class='ident'>left</span> <span class='op'>&lt;</span> <span class='ident'>right</span> {
         <span class='kw'>let</span> <span class='ident'>mid</span> <span class='op'>=</span> (<span class='ident'>left</span> <span class='op'>+</span> <span class='ident'>right</span>) <span class='op'>/</span> <span class='number'>2</span>;
@@ -1761,6 +1753,8 @@
                     <dd>Move down in search results</dd>
                     <dt>&#9166;</dt>
                     <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
                 </dl>
             </div>
 
